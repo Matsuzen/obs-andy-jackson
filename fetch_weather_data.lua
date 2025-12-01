@@ -7,6 +7,9 @@ local update_interval = 60 -- seconds
 local base_url = "https://www.flymarshall.com/wx/betaTwo/wx"
 local url_suffix = ".dat"
 
+local begin_at = 6 * 60 + 30 -- 6:30 AM in minutes
+local end_at = 17 * 60 + 30 -- 5:30 PM in minutes
+
 -- Timer flag
 local last_update = 0
 
@@ -39,16 +42,12 @@ function script_properties()
     end
     obs.source_list_release(sources)
 
-    -- Base URL
     obs.obs_properties_add_text(props, "base_url", "Base URL", obs.OBS_TEXT_DEFAULT)
 
-    -- URL suffix
     obs.obs_properties_add_text(props, "url_suffix", "URL Suffix", obs.OBS_TEXT_DEFAULT)
 
-    -- Update interval
     obs.obs_properties_add_int(props, "update_interval", "Update Interval (seconds)", 10, 3600, 1)
 
-    -- Manual update button
     obs.obs_properties_add_button(props, "update_now", "Update Now", update_now_clicked)
 
     return props
@@ -67,14 +66,12 @@ function script_update(settings)
     url_suffix = obs.obs_data_get_string(settings, "url_suffix")
     update_interval = obs.obs_data_get_int(settings, "update_interval")
 
-    -- Only fetch if we have at least one valid source name
     if wind_source_name ~= "" or datetime_source_name ~= "" then
         fetch_weather_data()
     end
 end
 
 function script_load(settings)
-    -- Register timer to check for updates
     obs.timer_add(check_update, 1000) -- Check every second
 end
 
@@ -92,7 +89,6 @@ function update_now_clicked(props, p)
 end
 
 function degrees_to_cardinal(degrees)
-    -- Convert wind direction in degrees to cardinal direction
     local deg = tonumber(degrees)
     if not deg then
         return "N/A"
@@ -101,7 +97,6 @@ function degrees_to_cardinal(degrees)
     -- Normalize to 0-360
     deg = deg % 360
 
-    -- 16 cardinal directions (N, NNE, NE, ENE, E, ESE, SE, SSE, S, SSW, SW, WSW, W, WNW, NW, NNW)
     local directions = {
         "N", "NNE", "NE", "ENE",
         "E", "ESE", "SE", "SSE",
@@ -122,15 +117,12 @@ function fetch_weather_data()
         return
     end
 
-    -- Get current date in YYYYMMDD format
     local date_str = os.date("%Y%m%d")
 
-    -- Build the complete URL
     local url = base_url .. date_str .. url_suffix
 
     print("Fetching data from: " .. url)
 
-    -- Use curl command to fetch the data
     local curl_command = string.format('curl -s "%s"', url)
     local handle = io.popen(curl_command)
 
@@ -139,7 +131,6 @@ function fetch_weather_data()
         handle:close()
 
         if data and data ~= "" then
-            -- Extract only the last line
             local last_line = ""
             for line in data:gmatch("[^\r\n]+") do
                 if line ~= "" then
@@ -147,39 +138,32 @@ function fetch_weather_data()
                 end
             end
 
-            -- Parse the CSV data
             local fields = {}
             for field in last_line:gmatch("[^,]+") do
                 table.insert(fields, field)
             end
 
-            -- Extract specific fields (1-indexed in Lua)
-            local time = fields[1] or "N/A"
-            local date = fields[2] or "N/A"
-            local wind_speed = fields[3] or "N/A"
-            local wind_gust = fields[4] or "N/A"
-            local wind_dir = fields[5] or "N/A"
+            local current_minutes = tonumber(os.date("%H")) * 60 + tonumber(os.date("%M"))
+            local offline = current_minutes < begin_at or current_minutes > end_at
 
-            -- Convert wind direction to cardinal
-            local wind_cardinal = degrees_to_cardinal(wind_dir)
+            local wind_output = ""
+            if offline == true then
+                wind_output = "-- mph, -- mph, -- "
+            else
+                local wind_speed = fields[3] or "N/A"
+                local wind_gust = fields[4] or "N/A"
+                local wind_dir = fields[5] or "N/A"
+                wind_output = string.format(
+                    "%s mph, %s mph, %s",
+                    string.gsub(wind_speed, "^0", ""), string.gsub(wind_gust, "^0", ""), degrees_to_cardinal(wind_dir)
+                )
+            end
 
-            -- Format the wind data output
-            local wind_output = string.format(
-                "%s mph, %s mph, %s",
-                string.gsub(wind_speed, "^0", ""), string.gsub(wind_gust, "^0", ""), wind_cardinal
-            )
+            local datetime_output = os.date("%Y/%m/%d %H:%M")
+            if offline == true then
+                datetime_output = datetime_output .. " (offline)"
+            end
 
-            -- Format the date/time output (convert to YYYY/MM/DD HH:MM:SS format)
-            -- Parse the date (format: M/D/YYYY or MM/DD/YYYY)
-            local month, day, year = date:match("(%d+)/(%d+)/(%d+)")
-
-            -- Format as YYYY/MM/DD HH:MM:SS (pad with zeros and add :00 for seconds)
-            local datetime_output = string.format(
-                "%s/%02d/%02d %s",
-                year, tonumber(month), tonumber(day), time
-            )
-
-            -- Update both text sources
             if wind_source_name ~= "" then
                 update_text_source(wind_source_name, wind_output)
             end
@@ -187,10 +171,7 @@ function fetch_weather_data()
             if datetime_source_name ~= "" then
                 update_text_source(datetime_source_name, datetime_output)
             end
-
-            print("Successfully fetched weather data - Wind: " .. wind_speed .. " mph @ " .. wind_dir .. "° | " .. time .. " " .. date)
         else
-            -- Error fetching data
             local error_msg = "Error: Could not fetch data from " .. url
             if wind_source_name ~= "" then
                 update_text_source(wind_source_name, error_msg)
@@ -213,19 +194,14 @@ function fetch_weather_data()
 end
 
 function update_text_source(source_name, text)
-    -- Get the text source
     local source = obs.obs_get_source_by_name(source_name)
     if source ~= nil then
-        -- Get current settings
         local settings = obs.obs_source_get_settings(source)
 
-        -- Update the text (try both common property names)
         obs.obs_data_set_string(settings, "text", text)
 
-        -- Apply the updated settings
         obs.obs_source_update(source, settings)
 
-        -- Clean up
         obs.obs_data_release(settings)
         obs.obs_source_release(source)
     else

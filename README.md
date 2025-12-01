@@ -4,10 +4,6 @@
 
 Created a Lua script for OBS that automatically fetches weather data from a URL and displays it in two separate text sources.
 
-## Problem Solved
-
-The user wanted to use the OBS URL/API plugin with inja templating to fetch weather data with dynamic dates. However, the `strftime` function mentioned in documentation wasn't actually implemented in the plugin, causing errors.
-
 ## Solution
 
 Created `fetch_weather_data.lua` - an OBS Lua script that:
