@@ -1,10 +1,64 @@
-# OBS Weather Data Fetcher Script
+# OBS Automation Scripts
 
-## Summary
+This repository contains automation scripts for OBS (Open Broadcaster Software).
+
+## Projects
+
+### 1. Weather Data Fetcher (Lua)
+
+A Lua script for OBS that automatically fetches weather data from a URL and displays it in text sources.
+
+**File:** `fetch_weather_data.lua`
+
+**Features:**
+- Fetches weather data from Arduino Weather Station
+- Displays wind speed, gusts, and direction
+- Shows formatted date/time
+- Auto-updates at configurable intervals
+
+See the [Weather Data section](#weather-data-details) below for detailed information.
+
+---
+
+### 2. YouTube Stream Scheduler (Go)
+
+**NEW!** A Go application that automates YouTube live streaming by scheduling streams and automatically pressing "Go Live" at the specified time.
+
+**Files:**
+- `main.go` - Main application
+- `go.mod` - Go dependencies
+- `YOUTUBE_SETUP.md` - Complete setup guide
+
+**Features:**
+- Schedule YouTube live streams for specific times
+- Automatically transition from preview to live
+- Single executable - easy to distribute
+- OAuth 2.0 authentication with YouTube API
+- Command-line interface with flags
+
+**Quick Start:**
+
+1. Follow the setup guide in `YOUTUBE_SETUP.md` to configure YouTube API access
+2. Build the executable:
+   ```bash
+   go build -o youtube-stream-scheduler
+   ```
+3. Run the scheduler:
+   ```bash
+   ./youtube-stream-scheduler -title "My Stream" -time "2026-01-25T20:00:00"
+   ```
+
+**See `YOUTUBE_SETUP.md` for complete documentation.**
+
+---
+
+## Weather Data Details
+
+### Summary
 
 Created a Lua script for OBS that automatically fetches weather data from a URL and displays it in two separate text sources.
 
-## Solution
+### Solution
 
 Created `fetch_weather_data.lua` - an OBS Lua script that:
 1. Automatically generates URLs with today's date in YYYYMMDD format
@@ -12,9 +66,9 @@ Created `fetch_weather_data.lua` - an OBS Lua script that:
 3. Parses the CSV data format from Arduino Weather Station
 4. Displays formatted data in two separate text sources
 
-## Features
+### Features
 
-### Two Text Sources
+#### Two Text Sources
 
 **Wind Data Source** displays:
 ```
@@ -28,7 +82,7 @@ YYYY/MM/DD HH:MM
 ```
 Example: `2025/11/27 13:13`
 
-### Data Processing
+#### Data Processing
 
 - Fetches latest line from weather data file
 - Parses CSV format based on [Arduino Weather Station data string composition](https://github.com/crestlinesoaring/ArduinoWeatherStation/wiki/Data-String-Composition)
@@ -42,13 +96,13 @@ Example: `2025/11/27 13:13`
 - Strips leading zeros from wind speed values
 - Formats date/time to ISO-like format (YYYY/MM/DD HH:MM)
 
-### Auto-Update
+#### Auto-Update
 
 - Configurable update interval (default: 60 seconds)
 - Manual "Update Now" button for testing
 - Automatic URL date generation using current system date
 
-## Installation
+### Installation
 
 1. Create two text sources in OBS:
    - One for wind data (e.g., "Wind Data")
@@ -67,16 +121,16 @@ Example: `2025/11/27 13:13`
    - **Update Interval**: 60 seconds (configurable)
    - Click **"Update Now"** to test
 
-## Technical Details
+### Technical Details
 
-### Current Implementation
+#### Current Implementation
 
 - Uses `io.popen()` to execute `curl` command
 - Parses CSV data with Lua pattern matching
 - Updates OBS text sources directly via `obs_source_update()`
 - Timer-based polling for automatic updates
 
-### Cardinal Direction Conversion
+#### Cardinal Direction Conversion
 
 The `degrees_to_cardinal()` function converts degrees to 16-point compass directions:
 - Each direction covers 22.5° (360° / 16 directions)
@@ -85,9 +139,25 @@ The `degrees_to_cardinal()` function converts degrees to 16-point compass direct
   - With offset: N covers 348.75° to 11.25° (centered at 0°)
 - Example: 225° converts to "SW" (Southwest)
 
-## Data Source
+### Data Source
 
 Weather data comes from [Crestline Soaring Arduino Weather Station](https://github.com/crestlinesoaring/ArduinoWeatherStation)
 - CSV format with comma-separated fields
 - Multiple readings per day
 - Script uses only the last (most recent) line
+
+---
+
+## Security
+
+The `.gitignore` file is configured to exclude:
+- YouTube API credentials (`credentials.json`, `youtube_token.json`)
+- Compiled binaries
+- System files
+
+**Never commit API credentials to version control.**
+
+## Requirements
+
+- **Weather Script**: OBS Studio with Lua scripting support
+- **YouTube Scheduler**: Go 1.21 or later
