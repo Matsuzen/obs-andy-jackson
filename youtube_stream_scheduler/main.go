@@ -19,13 +19,13 @@ import (
 const (
 	credentialsFile = "credentials.json"
 	tokenFile       = "youtube_token.json"
+	STREAM_TITLE    = "Marshall Weather Station - Stream" // This differs from the Broadcast title!
 )
 
 type StreamScheduler struct {
 	service *youtube.Service
 }
 
-// Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) (*http.Client, error) {
 	tokFile := tokenFile
 	tok, err := tokenFromFile(tokFile)
@@ -39,7 +39,6 @@ func getClient(config *oauth2.Config) (*http.Client, error) {
 	return config.Client(context.Background(), tok), nil
 }
 
-// Request a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 
@@ -53,7 +52,7 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	for i := 0; i < 80; i++ {
 		fmt.Print("=")
 	}
-	fmt.Println("\n")
+	fmt.Println("")
 	fmt.Println("Step 1: Visit this URL in your browser:")
 	fmt.Printf("\n%s\n\n", authURL)
 	fmt.Println("Step 2: After authorizing, Google will display an authorization code.")
@@ -73,7 +72,6 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	return tok, nil
 }
 
-// Retrieves a token from a local file.
 func tokenFromFile(file string) (*oauth2.Token, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -85,7 +83,6 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	return tok, err
 }
 
-// Saves a token to a file path.
 func saveToken(path string, token *oauth2.Token) {
 	fmt.Printf("✅ Saving credential file to: %s\n", path)
 	f, err := os.Create(path)
@@ -96,14 +93,12 @@ func saveToken(path string, token *oauth2.Token) {
 	json.NewEncoder(f).Encode(token)
 }
 
-// Open browser based on OS
-// Initialize YouTube service
 func NewStreamScheduler() (*StreamScheduler, error) {
 	ctx := context.Background()
 
 	b, err := os.ReadFile(credentialsFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read credentials file: %v\nPlease follow setup instructions in YOUTUBE_SETUP.md", err)
+		return nil, fmt.Errorf("unable to read credentials file: %v\nPlease follow setup instructions in README.md", err)
 	}
 
 	config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
@@ -126,7 +121,6 @@ func NewStreamScheduler() (*StreamScheduler, error) {
 	return &StreamScheduler{service: service}, nil
 }
 
-// Schedule a live stream
 func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTime time.Time, privacy string) (*youtube.LiveBroadcast, *youtube.LiveStream, error) {
 	fmt.Println("📅 Scheduling live stream...")
 	fmt.Printf("   Title: %s\n", title)
@@ -142,9 +136,7 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 		},
 		ContentDetails: &youtube.LiveBroadcastContentDetails{
 			EnableAutoStart: false,
-			// Double check if this needs to be true or not
-			// If this is false, the stream won't stop when there is internet problems and the stream cuts
-			EnableAutoStop: false,
+			EnableAutoStop:  false,
 		},
 		Status: &youtube.LiveBroadcastStatus{
 			PrivacyStatus:           privacy,
@@ -160,31 +152,46 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 
 	fmt.Printf("✅ Broadcast created with ID: %s\n", broadcastResponse.Id)
 
-	stream := &youtube.LiveStream{
-		Snippet: &youtube.LiveStreamSnippet{
-			Title: fmt.Sprintf("%s - Stream", title),
-		},
-		Cdn: &youtube.CdnSettings{
-			FrameRate:     "variable",
-			IngestionType: "rtmp",
-			Resolution:    "variable",
-		},
-	}
-
-	streamCall := s.service.LiveStreams.Insert([]string{"snippet", "cdn"}, stream)
-	streamResponse, err := streamCall.Do()
+	streamListCall := s.service.LiveStreams.List([]string{"snippet", "cdn"})
+	streamListResponse, err := streamListCall.Mine(true).Do()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating stream: %v", err)
+		return nil, nil, fmt.Errorf("error listing streams: %v", err)
 	}
 
-	fmt.Printf("✅ Stream created with ID: %s\n", streamResponse.Id)
+	var stream *youtube.LiveStream
 
-	bindCall := s.service.LiveBroadcasts.Bind(broadcastResponse.Id, []string{"id", "contentDetails"})
-	bindCall.StreamId(streamResponse.Id)
+	for _, streamItem := range streamListResponse.Items {
+		if streamItem.Snippet.Title == STREAM_TITLE {
+			stream = streamItem
+			break
+		}
+	}
+
+	if stream == nil {
+		newStream := &youtube.LiveStream{
+			Snippet: &youtube.LiveStreamSnippet{
+				Title: STREAM_TITLE,
+			},
+			Cdn: &youtube.CdnSettings{
+				FrameRate:     "variable",
+				IngestionType: "rtmp",
+				Resolution:    "variable",
+			},
+		}
+		streamCall := s.service.LiveStreams.Insert([]string{"snippet", "cdn"}, newStream)
+		streamResponse, err := streamCall.Do()
+		if err != nil {
+			return nil, nil, fmt.Errorf("error creating new stream: %v", err)
+		}
+		stream = streamResponse
+	}
+
+	bindCall := s.service.LiveBroadcasts.Bind(broadcastResponse.Id, []string{"id", "contentDetails"}).StreamId(stream.Id)
 	_, err = bindCall.Do()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error binding broadcast to stream: %v", err)
 	}
+	fmt.Printf("✅ Stream created with ID: %s, Title: %s\n", stream.Id, stream.Snippet.Title)
 
 	fmt.Println("✅ Broadcast bound to stream")
 
@@ -192,10 +199,10 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 	fmt.Println("Stream Information:")
 	fmt.Printf("Studio URL: https://studio.youtube.com/video/%s/livestreaming\n", broadcastResponse.Id)
 	fmt.Printf("Watch URL: https://youtube.com/watch?v=%s\n", broadcastResponse.Id)
-	fmt.Printf("Stream Key: %s\n", streamResponse.Cdn.IngestionInfo.StreamName)
-	fmt.Printf("RTMP URL: %s/%s\n\n", streamResponse.Cdn.IngestionInfo.IngestionAddress, streamResponse.Cdn.IngestionInfo.StreamName)
+	fmt.Printf("Stream Key: %s\n", stream.Cdn.IngestionInfo.StreamName)
+	fmt.Printf("RTMP URL: %s/%s\n\n", stream.Cdn.IngestionInfo.IngestionAddress, stream.Cdn.IngestionInfo.StreamName)
 
-	return broadcastResponse, streamResponse, nil
+	return broadcastResponse, stream, nil
 }
 
 // Transition broadcast to live
