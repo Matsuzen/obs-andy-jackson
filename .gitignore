@@ -1,11 +1,7 @@
 # YouTube API credentials - DO NOT COMMIT
 **/credentials.json
 **/youtube_token.json
-
-# Compiled binaries
-**/youtube-stream-scheduler
-**/youtube-stream-scheduler.exe
-**/youtube-stream-scheduler-*
+.tool-versions
 
 # Node modules (if any)
 node_modules/
