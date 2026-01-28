@@ -122,7 +122,6 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 	fmt.Printf("   Scheduled for: %s\n", scheduledTime.Format("2006-01-02 15:04:05"))
 	fmt.Printf("   Privacy: %s\n\n", privacy)
 
-	// Create the live broadcast
 	broadcast := &youtube.LiveBroadcast{
 		Snippet: &youtube.LiveBroadcastSnippet{
 			Title:              title,
@@ -188,7 +187,6 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 	}
 	fmt.Printf("Stream bound with ID: %s, Title: %s\n", stream.Id, stream.Snippet.Title)
 
-	// Display stream information
 	fmt.Println()
 	fmt.Println("Stream Information:")
 	fmt.Printf("  Studio URL: https://studio.youtube.com/video/%s/livestreaming\n", broadcastResponse.Id)
@@ -200,7 +198,6 @@ func (s *StreamScheduler) ScheduleStream(title, description string, scheduledTim
 	return broadcastResponse, stream, nil
 }
 
-// GoLive transitions the broadcast to live
 func (s *StreamScheduler) GoLive(broadcastID string) error {
 	fmt.Println("Transitioning broadcast to LIVE...")
 
@@ -221,6 +218,21 @@ func (s *StreamScheduler) GoLive(broadcastID string) error {
 
 	fmt.Println("Broadcast is now LIVE!")
 	fmt.Printf("  Watch at: https://youtube.com/watch?v=%s\n\n", broadcastID)
+
+	return nil
+}
+
+func (s *StreamScheduler) EndStream(broadcastID string) error {
+	fmt.Println("Ending broadcast...")
+
+	completeCall := s.service.LiveBroadcasts.Transition("complete", broadcastID, []string{"status"})
+	_, err := completeCall.Do()
+	if err != nil {
+		return fmt.Errorf("error ending broadcast: %v", err)
+	}
+
+	fmt.Println("Broadcast ended successfully")
+	fmt.Printf("  Video available at: https://youtube.com/watch?v=%s\n", broadcastID)
 
 	return nil
 }

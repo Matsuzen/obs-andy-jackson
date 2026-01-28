@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// SunriseSunsetResponse represents the response from sunrise-sunset.org API
 type SunriseSunsetResponse struct {
 	Results struct {
 		Sunrise string `json:"sunrise"`
@@ -18,7 +17,6 @@ type SunriseSunsetResponse struct {
 	Status string `json:"status"`
 }
 
-// IPLocationResponse represents the response from ip-api.com
 type IPLocationResponse struct {
 	Lat     float64 `json:"lat"`
 	Lon     float64 `json:"lon"`
@@ -28,13 +26,11 @@ type IPLocationResponse struct {
 	Status  string  `json:"status"`
 }
 
-// NominatimResponse represents the response from OpenStreetMap Nominatim API
 type NominatimResponse struct {
 	Lat string `json:"lat"`
 	Lon string `json:"lon"`
 }
 
-// getLocationFromIP returns lat/lng based on the computer's IP address
 func getLocationFromIP() (float64, float64, string, error) {
 	resp, err := http.Get("http://ip-api.com/json/")
 	if err != nil {
@@ -99,7 +95,6 @@ func getLocationFromCity(city string) (float64, float64, error) {
 	return lat, lng, nil
 }
 
-// SunTimes holds both sunrise and sunset times
 type SunTimes struct {
 	Sunrise time.Time
 	Sunset  time.Time
