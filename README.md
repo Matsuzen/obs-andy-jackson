@@ -8,7 +8,7 @@ This repository contains automation scripts for OBS (Open Broadcaster Software).
 
 A Lua script for OBS that automatically fetches weather data from a URL and displays it in text sources.
 
-**File:** `fetch_weather_data.lua`
+**File:** `weather_data.lua`
 
 **Features:**
 - Fetches weather data from Arduino Weather Station
@@ -27,7 +27,7 @@ See the [Weather Data section](#weather-data-details) below for detailed informa
 **Files:**
 - `main.go` - Main application
 - `go.mod` - Go dependencies
-- `YOUTUBE_SETUP.md` - Complete setup guide
+- `./launcher/README.md` - Complete setup guide
 
 **Features:**
 - Schedule YouTube live streams for specific times
@@ -38,17 +38,17 @@ See the [Weather Data section](#weather-data-details) below for detailed informa
 
 **Quick Start:**
 
-1. Follow the setup guide in `YOUTUBE_SETUP.md` to configure YouTube API access
+1. Follow the setup guide in `./launcher/README.md` to configure YouTube API access
 2. Build the executable:
    ```bash
-   go build -o youtube-stream-scheduler
+   go build -o launcher
    ```
 3. Run the scheduler:
    ```bash
-   ./youtube-stream-scheduler -title "My Stream" -time "2026-01-25T20:00:00"
+   ./launcher -title "My Stream" -time "2026-01-25T20:00:00"
    ```
 
-**See `YOUTUBE_SETUP.md` for complete documentation.**
+**See `./launcher/README.md` for complete documentation.**
 
 ---
 
@@ -60,7 +60,7 @@ Created a Lua script for OBS that automatically fetches weather data from a URL 
 
 ### Solution
 
-Created `fetch_weather_data.lua` - an OBS Lua script that:
+Created `weather_data.lua` - an OBS Lua script that:
 1. Automatically generates URLs with today's date in YYYYMMDD format
 2. Fetches weather data from `https://www.flymarshall.com/wx/betaTwo/wx{DATE}.dat`
 3. Parses the CSV data format from Arduino Weather Station
@@ -111,7 +111,7 @@ Example: `2025/11/27 13:13`
 2. Add the script to OBS:
    - Go to **Tools → Scripts**
    - Click **+** button
-   - Select `/Users/julien.renald/personal/obs/fetch_weather_data.lua`
+   - Select `/Users/<user>/personal/obs/weather_data.lua`
 
 3. Configure the script:
    - **Wind Data Text Source**: Select your wind data text source

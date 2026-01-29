@@ -2,6 +2,7 @@
 **/credentials.json
 **/youtube_token.json
 .tool-versions
+launcher/broadcast_id.txt
 
 # Node modules (if any)
 node_modules/

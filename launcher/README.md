@@ -57,21 +57,21 @@ This guide will walk you through setting up the YouTube Data API and running the
 go mod download
 
 # Build for your current platform
-go build -o youtube-stream-scheduler
+go build -o launcher
 
 # Or build for specific platforms:
 
 # macOS (Intel)
-GOOS=darwin GOARCH=amd64 go build -o youtube-stream-scheduler-mac-intel
+GOOS=darwin GOARCH=amd64 go build -o launcher-mac-intel
 
 # macOS (Apple Silicon)
-GOOS=darwin GOARCH=arm64 go build -o youtube-stream-scheduler-mac-arm
+GOOS=darwin GOARCH=arm64 go build -o launcher-mac-arm
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o youtube-stream-scheduler.exe
+GOOS=windows GOARCH=amd64 go build -o launcher.exe
 
 # Linux
-GOOS=linux GOARCH=amd64 go build -o youtube-stream-scheduler-linux
+GOOS=linux GOARCH=amd64 go build -o launcher-linux
 ```
 
 ## Step 6: Run the Scheduler
@@ -79,24 +79,24 @@ GOOS=linux GOARCH=amd64 go build -o youtube-stream-scheduler-linux
 ### Basic Usage
 
 ```bash
-./youtube-stream-scheduler -title "<title>" -time "<scheduled_time>"
+./launcher -title "<title>" -time "<scheduled_time>"
 ```
 
 ### Examples
 
 **Schedule a stream for 8 PM today:**
 ```bash
-./youtube-stream-scheduler -title "My Live Stream" -time "2026-01-25T20:00:00"
+./launcher -title "My Live Stream" -time "2026-01-25T20:00:00"
 ```
 
 **Schedule a stream with description and privacy setting:**
 ```bash
-./youtube-stream-scheduler -title "Gaming Session" -time "2026-01-26T15:30:00" -description "Playing Elden Ring" -privacy "unlisted"
+./launcher -title "Gaming Session" -time "2026-01-26T15:30:00" -description "Playing Elden Ring" -privacy "unlisted"
 ```
 
 **On Windows:**
 ```cmd
-youtube-stream-scheduler.exe -title "My Live Stream" -time "2026-01-25T20:00:00"
+launcher.exe -title "My Live Stream" -time "2026-01-25T20:00:00"
 ```
 
 ### Command-Line Flags
@@ -207,17 +207,17 @@ Never commit your API credentials to version control.
 
 **Build:**
 ```bash
-go build -o youtube-stream-scheduler
+go build -o launcher
 ```
 
 **Run:**
 ```bash
-./youtube-stream-scheduler -title "Stream Title" -time "2026-01-25T20:00:00"
+./launcher -title "Stream Title" -time "2026-01-25T20:00:00"
 ```
 
 **Full example:**
 ```bash
-./youtube-stream-scheduler \
+./launcher \
   -title "Live Coding Session" \
   -time "2026-01-26T19:00:00" \
   -description "Building a Go application" \

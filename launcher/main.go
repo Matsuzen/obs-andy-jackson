@@ -337,9 +337,10 @@ func cmdStreamStart(args []string) {
 		obsCmd := exec.Command(obsExe, "--startstreaming")
 		if err := obsCmd.Start(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error starting OBS: %v\n", err)
-			fmt.Fprintf(os.Stderr, "You may need to specify the OBS path with -obs-path\n")
 		} else {
 			fmt.Println("OBS started with streaming enabled")
+			// This sleep time here makes sure that OBS has enough time to initialize before transitioning the stream to live.
+			time.Sleep(30 * time.Second)
 		}
 	}
 
@@ -413,7 +414,6 @@ func createScheduledTask(taskName, command string, runTime time.Time) error {
 	}
 }
 
-// createWindowsTask creates or updates a Windows scheduled task
 func createWindowsTask(taskName, command string, runTime time.Time) error {
 	timeStr := runTime.Format("15:04")
 
