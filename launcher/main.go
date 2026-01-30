@@ -332,9 +332,10 @@ func cmdStreamStart(args []string) {
 			obsExe = getOBSPath()
 		}
 
-		fmt.Printf("Starting OBS: %s\n", obsExe)
+		fmt.Printf("Starting OBS in directory: %s\n", obsExe)
 
 		obsCmd := exec.Command(obsExe, "--startstreaming")
+		obsCmd.Dir = filepath.Dir(obsExe)
 		if err := obsCmd.Start(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error starting OBS: %v\n", err)
 		} else {
@@ -466,6 +467,8 @@ func createUnixTask(taskName, command string, runTime time.Time) error {
 	return nil
 }
 
+// Returns the path then the actual program
+// Windows will throw some errors if the program is launched outside of the executable's directory
 func getOBSPath() string {
 	switch runtime.GOOS {
 	case "windows":
