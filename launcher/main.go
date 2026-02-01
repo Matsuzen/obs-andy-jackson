@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"launcher/internal/release"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 )
 
 const broadcastIDFile = "broadcast_id.txt"
+const VERSION = "0.0.1"
 
 func printUsage() {
 	fmt.Println("OBS Stream Launcher")
@@ -22,6 +24,7 @@ func printUsage() {
 	fmt.Println("  sunrise  Get sunrise time for a location")
 	fmt.Println("  sunset   Get sunset time for a location")
 	fmt.Println("  stream   Stream management commands")
+	fmt.Println("  update   Update the CLI to the latest release")
 	fmt.Println()
 	fmt.Println("Run 'launcher <command> --help' for more information on a command.")
 }
@@ -64,8 +67,12 @@ func main() {
 		cmdSunset(os.Args[2:])
 	case "stream":
 		cmdStream(os.Args[2:])
+	case "update":
+		cmdUpdate(os.Args[2:])
 	case "-help", "--help", "help":
 		printUsage()
+	case "-version", "--version", "version":
+		fmt.Printf("OBS Stream Launcher version %s\n", VERSION)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -177,6 +184,20 @@ func getSunTimesForLocation(city string) (*SunTimes, string) {
 	}
 
 	return sunTimes, locationName
+}
+
+func cmdUpdate(_ []string) {
+	updater := release.NewUpdater(VERSION)
+	latestRelease, err := updater.GetLatestRelease()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	err = updater.Apply(latestRelease)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 }
 
 func cmdStreamSchedule(args []string) {
