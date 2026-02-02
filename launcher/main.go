@@ -13,7 +13,7 @@ import (
 )
 
 const broadcastIDFile = "broadcast_id.txt"
-const VERSION = "0.0.1"
+const VERSION = "0.0.3"
 
 func printUsage() {
 	fmt.Println("OBS Stream Launcher")
@@ -437,25 +437,24 @@ func createScheduledTask(taskName, command string, runTime time.Time) error {
 }
 
 func createWindowsTask(taskName, command string, runTime time.Time) error {
-	timeStr := runTime.Format("2006-01-02T15:04:05")
+	timeStr := runTime.Format("15:04")
 
 	checkCmd := exec.Command("schtasks", "/query", "/tn", taskName)
 	if err := checkCmd.Run(); err == nil {
-		updateCmd := exec.Command("schtasks", "/change", "/tn", taskName, "/st", timeStr)
-		if err := updateCmd.Run(); err != nil {
-			return fmt.Errorf("failed to update task: %v", err)
+		deleteCmd := exec.Command("schtasks", "/delete", "/tn", taskName, "/f")
+		if err := deleteCmd.Run(); err != nil {
+			return fmt.Errorf("failed to delete task: %v", err)
 		}
-	} else {
-		createCmd := exec.Command("schtasks", "/create",
-			"/tn", taskName,
-			"/tr", command,
-			"/sc", "once",
-			"/st", timeStr,
-			"/f",
-		)
-		if err := createCmd.Run(); err != nil {
-			return fmt.Errorf("failed to create task: %v", err)
-		}
+	}
+	createCmd := exec.Command("schtasks", "/create",
+		"/tn", taskName,
+		"/tr", command,
+		"/sc", "once",
+		"/st", timeStr,
+		"/f",
+	)
+	if err := createCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create task: %v", err)
 	}
 	return nil
 }
