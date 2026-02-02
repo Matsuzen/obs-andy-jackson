@@ -437,7 +437,7 @@ func createScheduledTask(taskName, command string, runTime time.Time) error {
 }
 
 func createWindowsTask(taskName, command string, runTime time.Time) error {
-	timeStr := runTime.Format("15:04")
+	timeStr := runTime.Format("2006-01-02T15:04:05")
 
 	checkCmd := exec.Command("schtasks", "/query", "/tn", taskName)
 	if err := checkCmd.Run(); err == nil {
