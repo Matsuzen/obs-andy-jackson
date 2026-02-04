@@ -13,7 +13,7 @@ import (
 )
 
 const broadcastIDFile = "broadcast_id.txt"
-const VERSION = "0.0.3"
+const VERSION = "0.0.4"
 
 func printUsage() {
 	fmt.Println("OBS Stream Launcher")
@@ -290,15 +290,16 @@ func cmdStreamSchedule(args []string) {
 		fmt.Printf("Broadcast ID saved to: %s\n", bidFile)
 	}
 
+	workingDir := filepath.Dir(getOBSPath())
 	startCmd := fmt.Sprintf(`"%s" stream start -id "%s"`, execPath, broadcast.Id)
-	if err := createScheduledTask("StartYouTubeStream", startCmd, startTime); err != nil {
+	if err := createScheduledTask("StartYouTubeStream", startCmd, workingDir, startTime); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating start task: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Scheduled start task for: %s\n", startTime.Format("15:04"))
 
 	endCmd := fmt.Sprintf(`"%s" stream end -id "%s"`, execPath, broadcast.Id)
-	if err := createScheduledTask("EndYouTubeStream", endCmd, endTime); err != nil {
+	if err := createScheduledTask("EndYouTubeStream", endCmd, workingDir, endTime); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating end task: %v\n", err)
 		os.Exit(1)
 	}
@@ -427,34 +428,33 @@ func cmdStreamEnd(args []string) {
 	}
 }
 
-func createScheduledTask(taskName, command string, runTime time.Time) error {
+func createScheduledTask(taskName, command, workingDir string, runTime time.Time) error {
 	switch runtime.GOOS {
 	case "windows":
-		return createWindowsTask(taskName, command, runTime)
+		return createWindowsTask(taskName, command, workingDir, runTime)
 	default:
 		return createUnixTask(taskName, command, runTime)
 	}
 }
 
-func createWindowsTask(taskName, command string, runTime time.Time) error {
-	timeStr := runTime.Format("15:04")
+func createWindowsTask(taskName, command, workingDir string, runTime time.Time) error {
+	dateStr := runTime.Format("2006-01-02")
+	timeStr := runTime.Format("15:04:05")
 
-	checkCmd := exec.Command("schtasks", "/query", "/tn", taskName)
-	if err := checkCmd.Run(); err == nil {
-		deleteCmd := exec.Command("schtasks", "/delete", "/tn", taskName, "/f")
-		if err := deleteCmd.Run(); err != nil {
-			return fmt.Errorf("failed to delete task: %v", err)
-		}
-	}
-	createCmd := exec.Command("schtasks", "/create",
-		"/tn", taskName,
-		"/tr", command,
-		"/sc", "once",
-		"/st", timeStr,
-		"/f",
-	)
-	if err := createCmd.Run(); err != nil {
-		return fmt.Errorf("failed to create task: %v", err)
+	// Use PowerShell to create the task with proper WorkingDirectory support
+	// schtasks.exe doesn't have a flag for "Start In", but PowerShell does
+	psScript := fmt.Sprintf(`
+$action = New-ScheduledTaskAction -Execute '%s' -WorkingDirectory '"%s"'
+$trigger = New-ScheduledTaskTrigger -Once -At '%sT%s'
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+$principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive
+Unregister-ScheduledTask -TaskName '%s' -Confirm:$false -ErrorAction SilentlyContinue
+Register-ScheduledTask -TaskName '%s' -Action $action -Trigger $trigger -Settings $settings -Principal $principal
+`, command, workingDir, dateStr, timeStr, taskName, taskName)
+
+	createCmd := exec.Command("powershell", "-NoProfile", "-Command", psScript)
+	if output, err := createCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to create task: %v, output: %s", err, string(output))
 	}
 	return nil
 }
