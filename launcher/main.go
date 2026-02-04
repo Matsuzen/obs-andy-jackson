@@ -438,6 +438,7 @@ func createScheduledTask(taskName, command string, runTime time.Time) error {
 
 func createWindowsTask(taskName, command string, runTime time.Time) error {
 	timeStr := runTime.Format("15:04")
+	// Use root folder path to ensure task is accessible across all users
 
 	checkCmd := exec.Command("schtasks", "/query", "/tn", taskName)
 	if err := checkCmd.Run(); err == nil {
@@ -451,6 +452,7 @@ func createWindowsTask(taskName, command string, runTime time.Time) error {
 		"/tr", command,
 		"/sc", "once",
 		"/st", timeStr,
+		"/it",
 		"/f",
 	)
 	if err := createCmd.Run(); err != nil {
